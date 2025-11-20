@@ -338,7 +338,6 @@ class QQAdminPlugin(Star):
         在群聊中禁言某用户。被禁言的用户在禁言期间将无法发送消息。
         Args:
             user_id(string): 要禁言的用户的QQ账号，必定为一串数字，如(12345678)
-            user_name(string): 要禁言的用户的QQ昵称，如(小明)
             duration(number): 禁言持续时间（以秒为单位），范围为30~86400。
         """
         try:
