@@ -281,6 +281,16 @@ class QQAdminPlugin(Star):
     async def view_reject_ids(self, event: AiocqhttpMessageEvent):
         await self.join.view_reject_ids(event)
 
+    @filter.command("设置进群等级", desc="设置本群进群等级门槛，设为0则清除")
+    @perm_required(PermLevel.ADMIN)
+    async def set_level_threshold(self, event: AiocqhttpMessageEvent):
+        await self.join.set_level_threshold(event)
+
+    @filter.command("查看进群等级", desc="查看本群进群等级门槛", alias={"进群等级"})
+    @perm_required(PermLevel.ADMIN)
+    async def view_level_threshold(self, event: AiocqhttpMessageEvent):
+        await self.join.view_level_threshold(event)
+
     @filter.command("批准", desc="批准进群申请", alias={"同意进群"})
     @perm_required(PermLevel.ADMIN)
     async def agree_add_group(self, event: AiocqhttpMessageEvent, extra: str = ""):

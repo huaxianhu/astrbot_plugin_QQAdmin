@@ -20,6 +20,7 @@ class GroupJoinData:
         self.accept_keywords: dict[str, list[str]] = {}
         self.reject_keywords: dict[str, list[str]] = {}
         self.reject_ids: dict[str, list[str]] = {}
+        self.reject_below_level: dict[str, int] = {}
         self._load()
 
     def _load(self):
@@ -32,6 +33,7 @@ class GroupJoinData:
             self.accept_keywords = data.get("accept_keywords", {})
             self.reject_keywords = data.get("reject_keywords", {})
             self.reject_ids = data.get("reject_ids", {})
+            self.reject_below_level = data.get("reject_below_level", {})
         except Exception as e:
             print(f"加载 group_join_data 失败: {e}")
             self._save()
@@ -41,6 +43,7 @@ class GroupJoinData:
             "accept_keywords": self.accept_keywords,
             "reject_keywords": self.reject_keywords,
             "reject_ids": self.reject_ids,
+            "reject_below_level": self.reject_below_level,
         }
         with open(self.path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
@@ -54,31 +57,42 @@ class GroupJoinManager:
     def __init__(self, json_path: str):
         self.data = GroupJoinData(json_path)
         self.auto_reject_without_keyword: bool = False
+        self.reject_below_level: int = 0
 
     def reject_reason(
-        self, group_id: str, user_id: str, comment: str | None = None
+        self, group_id: str, user_id: str, comment: str | None = None, user_level: int | None = None
     ) -> str | None:
         """返回拒绝原因标识：
         黑名单用户: 在用户ID黑名单中
         命中黑名单关键词: 触发黑名单关键词
         未包含进群关键词: 已配置自动同意关键词但未命中且开启自动拒绝
+        QQ等级过低: QQ等级低于设定阈值
         None: 不拒绝
         """
-        # 1. 用户ID黑名单
+        # 用户ID黑名单
         if (
             group_id in self.data.reject_ids
             and user_id in self.data.reject_ids[group_id]
         ):
             return "黑名单用户"
 
+        # QQ等级过低（优先使用群独立配置，否则使用全局配置）
+        level_threshold = self.data.reject_below_level.get(group_id, self.reject_below_level)
+        if (
+            level_threshold > 0
+            and user_level is not None
+            and user_level < level_threshold
+        ):
+            return f"QQ等级过低({user_level}<{level_threshold})"
+
         if comment:
             lower_comment = comment.lower()
-            # 2. 黑名单关键词
+            # 黑名单关键词
             if group_id in self.data.reject_keywords and any(
                 rk.lower() in lower_comment for rk in self.data.reject_keywords[group_id]
             ):
                 return "命中黑名单关键词"
-            # 3. 未包含任何自动同意关键词（需开启开关 & 已设置白名单关键词）
+            # 未包含任何自动同意关键词（需开启开关 & 已设置白名单关键词）
             if (
                 self.auto_reject_without_keyword
                 and group_id in self.data.accept_keywords
@@ -92,9 +106,9 @@ class GroupJoinManager:
         return None
 
     def should_reject(
-        self, group_id: str, user_id: str, comment: str | None = None
+        self, group_id: str, user_id: str, comment: str | None = None, user_level: int | None = None
     ) -> bool:
-        return self.reject_reason(group_id, user_id, comment) is not None
+        return self.reject_reason(group_id, user_id, comment, user_level) is not None
 
     def should_approve(self, group_id: str, comment: str) -> bool:
         if group_id not in self.data.accept_keywords:
@@ -156,6 +170,19 @@ class GroupJoinManager:
         self.data.reject_ids.setdefault(group_id, []).append(user_id)
         self.data.save()
 
+    def set_level_threshold(self, group_id: str, level: int) -> None:
+        """设置群的进群等级门槛"""
+        if level <= 0:
+            # 删除群配置，回退到全局配置
+            self.data.reject_below_level.pop(group_id, None)
+        else:
+            self.data.reject_below_level[group_id] = level
+        self.data.save()
+
+    def get_level_threshold(self, group_id: str) -> int | None:
+        """获取群的进群等级门槛，返回 None 表示未设置（使用全局配置）"""
+        return self.data.reject_below_level.get(group_id)
+
 
 class JoinHandle:
     def __init__(self, config: AstrBotConfig, data_dir: Path, admins_id: list[str]):
@@ -166,6 +193,9 @@ class JoinHandle:
         )
         self.group_join_manager.auto_reject_without_keyword = bool(
             config.get("reject_without_keyword", False)
+        )
+        self.group_join_manager.reject_below_level = int(
+            config.get("reject_below_level", 0)
         )
 
     async def _send_admin(self, client: CQHttp, message: str):
@@ -256,6 +286,43 @@ class JoinHandle:
             return
         await event.send(event.plain_result(f"本群的进群黑名单：{ids}"))
 
+    async def set_level_threshold(self, event: AiocqhttpMessageEvent):
+        """设置本群进群等级门槛"""
+        parts = event.message_str.strip().split()
+        if len(parts) < 2:
+            await event.send(event.plain_result("请提供等级数值"))
+            return
+        try:
+            level = int(parts[1])
+        except ValueError:
+            await event.send(event.plain_result("等级必须是整数"))
+            return
+
+        group_id = event.get_group_id()
+        self.group_join_manager.set_level_threshold(group_id, level)
+
+        if level <= 0:
+            global_level = self.group_join_manager.reject_below_level
+            if global_level > 0:
+                await event.send(event.plain_result(f"已清除本群等级门槛，将使用全局配置（{global_level}级）"))
+            else:
+                await event.send(event.plain_result("已清除本群等级门槛，当前未启用等级限制"))
+        else:
+            await event.send(event.plain_result(f"已设置本群进群等级门槛为 {level} 级"))
+
+    async def view_level_threshold(self, event: AiocqhttpMessageEvent):
+        """查看本群进群等级门槛"""
+        group_id = event.get_group_id()
+        group_level = self.group_join_manager.get_level_threshold(group_id)
+        global_level = self.group_join_manager.reject_below_level
+
+        if group_level is not None:
+            await event.send(event.plain_result(f"本群进群等级门槛：{group_level} 级（群独立配置）"))
+        elif global_level > 0:
+            await event.send(event.plain_result(f"本群进群等级门槛：{global_level} 级（全局配置）"))
+        else:
+            await event.send(event.plain_result("本群未设置进群等级门槛"))
+
     async def agree_add_group(self, event: AiocqhttpMessageEvent, extra: str = ""):
         """批准进群申请"""
         reply = await self.approve(event=event, extra=extra, approve=True)
@@ -287,10 +354,12 @@ class JoinHandle:
         ):
             comment = raw.get("comment")
             flag = raw.get("flag", "")
-            nickname = (await client.get_stranger_info(user_id=user_id))[
-                "nickname"
-            ] or "未知昵称"
+            stranger_info = await client.get_stranger_info(user_id=user_id)
+            nickname = stranger_info.get("nickname") or "未知昵称"
+            user_level = stranger_info.get("qqLevel")
             reply = f"【进群申请】批准/驳回：\n昵称：{nickname}\nQQ：{user_id}\nflag：{flag}"
+            if user_level is not None:
+                reply += f"\n等级：{user_level}"
             if comment:
                 reply += f"\n{comment}"
             if self.conf["admin_audit"]:
@@ -299,7 +368,7 @@ class JoinHandle:
                 await event.send(event.plain_result(reply))
 
             reason = self.group_join_manager.reject_reason(
-                str(group_id), str(user_id), comment
+                str(group_id), str(user_id), comment, user_level
             )
             if reason:
                 await client.set_group_add_request(

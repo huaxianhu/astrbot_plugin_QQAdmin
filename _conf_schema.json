@@ -31,6 +31,12 @@
     "type": "bool",
     "default": false
   },
+  "reject_below_level": {
+    "description": "进群等级门槛",
+    "hint": "当申请人的QQ等级低于此值时，自动拒绝进群申请。设为0表示不启用此功能。可通过群内命令为单个群设置独立配置",
+    "type": "int",
+    "default": 0
+  },
   "enable_black": {
     "description": "启用主动退群通知",
     "hint": "当用户主动退群时，向群内通报",
@@ -559,6 +565,30 @@
       },
       "view_reject_ids": {
         "description": "查看进群黑名单",
+        "type": "string",
+        "options": [
+          "超管",
+          "群主",
+          "管理员",
+          "高等级成员",
+          "成员"
+        ],
+        "default": "成员"
+      },
+      "set_level_threshold": {
+        "description": "设置进群等级",
+        "type": "string",
+        "options": [
+          "超管",
+          "群主",
+          "管理员",
+          "高等级成员",
+          "成员"
+        ],
+        "default": "管理员"
+      },
+      "view_level_threshold": {
+        "description": "查看进群等级",
         "type": "string",
         "options": [
           "超管",
