@@ -469,7 +469,9 @@ class JoinHandle:
             flag = raw.get("flag", "")
             stranger_info = await client.get_stranger_info(user_id=user_id)
             nickname = stranger_info.get("nickname") or "未知昵称"
-            user_level = stranger_info.get("qqLevel")
+            napcat_level = stranger_info.get("qqLevel")
+            lagrange_level = stranger_info.get("level")
+            user_level = napcat_level or lagrange_level
             reply = f"【进群申请】批准/驳回：\n昵称：{nickname}\nQQ：{user_id}\nflag：{flag}"
             if user_level is not None:
                 reply += f"\n等级：{user_level}"
