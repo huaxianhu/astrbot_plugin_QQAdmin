@@ -11,8 +11,8 @@ from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import (
 from astrbot.core.star.filter.event_message_type import EventMessageType
 
 from .core import (
+    BanproHandle,
     CurfewHandle,
-    EnhanceHandle,
     FileHandle,
     JoinHandle,
     LLMHandle,
@@ -20,6 +20,7 @@ from .core import (
     NormalHandle,
     NoticeHandle,
 )
+from .data import QQAdminDB
 from .permission import (
     PermissionManager,
     PermLevel,
@@ -30,19 +31,24 @@ from .utils import ADMIN_HELP, print_logo
 
 @register("astrbot_plugin_qqadmin", "Zhalslar", "...", "...")
 class QQAdminPlugin(Star):
+    DB_VERSION = 2
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.context = context
         self.conf = config
-        self.plugin_data_dir = StarTools.get_data_dir("astrbot_plugin_qqadmin")
         self.admins_id: list[str] = context.get_config().get("admins_id", [])
+        self.plugin_data_dir = StarTools.get_data_dir("astrbot_plugin_qqadmin")
+        self.db_path = self.plugin_data_dir / f"qqadmin_data_v{self.DB_VERSION}.db"
 
     async def initialize(self):
+        # 数据库
+        self.db = QQAdminDB(self.conf, self.db_path)
+        await self.db.init()
         # 实例化各个处理类
         self.normal = NormalHandle(self.conf)
         self.notice = NoticeHandle(self, self.plugin_data_dir)
-        self.enhance = EnhanceHandle(self.conf)
-        self.join = JoinHandle(self.conf, self.plugin_data_dir, self.admins_id)
+        self.banpro = BanproHandle(self.conf, self.db)
+        self.join = JoinHandle(self.conf, self.db, self.admins_id)
         self.member = MemberHandle(self)
         self.file = FileHandle(self.plugin_data_dir)
         self.curfew = CurfewHandle(self.context, self.plugin_data_dir)
@@ -185,34 +191,39 @@ class QQAdminPlugin(Star):
     async def get_group_notice(self, event: AiocqhttpMessageEvent):
         await self.notice.get_group_notice(event)
 
+    @filter.command("违禁词")
+    @perm_required(PermLevel.ADMIN)
+    async def handle_ban_words(self, event: AiocqhttpMessageEvent):
+        await self.banpro.handle_ban_words(event)
+
     @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
     @filter.event_message_type(EventMessageType.GROUP_MESSAGE)
-    async def check_forbidden_words(self, event: AiocqhttpMessageEvent):
+    async def on_ban_words(self, event: AiocqhttpMessageEvent):
         """自动检测违禁词，撤回并禁言"""
-        await self.enhance.check_forbidden_words(event)
+        await self.banpro.on_ban_words(event)
 
     @filter.platform_adapter_type(filter.PlatformAdapterType.AIOCQHTTP)
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
     async def spamming_ban(self, event: AiocqhttpMessageEvent):
         """刷屏检测与禁言"""
-        await self.enhance.spamming_ban(event)
+        await self.banpro.spamming_ban(event)
 
     @filter.command("投票禁言", desc="投票禁言 <秒数> @群友")
     @perm_required(PermLevel.ADMIN)
     async def start_vote_mute(
         self, event: AiocqhttpMessageEvent, ban_time: int | None = None
     ):
-        await self.enhance.start_vote_mute(event, ban_time)
+        await self.banpro.start_vote_mute(event, ban_time)
 
     @filter.command("赞同禁言", desc="同意执行当前禁言投票")
     @perm_required(PermLevel.ADMIN)
     async def agree_vote_mute(self, event: AiocqhttpMessageEvent):
-        await self.enhance.vote_mute(event, agree=True)
+        await self.banpro.vote_mute(event, agree=True)
 
     @filter.command("反对禁言", desc="反对执行当前禁言投票")
     @perm_required(PermLevel.ADMIN)
     async def disagree_vote_mute(self, event: AiocqhttpMessageEvent):
-        await self.enhance.vote_mute(event, agree=False)
+        await self.banpro.vote_mute(event, agree=False)
 
     @filter.command("开启宵禁", desc="开启宵禁 HH:MM HH:MM")
     @filter.event_message_type(filter.EventMessageType.GROUP_MESSAGE)
@@ -240,15 +251,15 @@ class QQAdminPlugin(Star):
 
     @filter.command("进群白词")
     @perm_required(PermLevel.ADMIN)
-    async def handle_accept_keyword(self, event: AiocqhttpMessageEvent):
+    async def handle_accept_words(self, event: AiocqhttpMessageEvent):
         "设置/查看自动批准进群的关键词（空格隔开，无参数表示查看）"
-        await self.join.handle_accept_keyword(event)
+        await self.join.handle_accept_words(event)
 
     @filter.command("进群黑词")
     @perm_required(PermLevel.ADMIN)
-    async def handle_reject_keywords(self, event: AiocqhttpMessageEvent):
+    async def handle_reject_words(self, event: AiocqhttpMessageEvent):
         "设置/查看进群黑名单关键词（空格隔开，无参数表示查看）"
-        await self.join.handle_reject_keywords(event)
+        await self.join.handle_reject_words(event)
 
     @filter.command("进群等级")
     @perm_required(PermLevel.ADMIN)
@@ -344,7 +355,7 @@ class QQAdminPlugin(Star):
         在群聊中禁言某用户。被禁言的用户在禁言期间将无法发送消息。
         Args:
             user_id(string): 要禁言的用户的QQ账号，必定为一串数字，如(12345678)
-            duration(number): 禁言持续时间（以秒为单位），范围为30~86400。
+            duration(number): 禁言持续时间（秒），范围为0~86400, 0表示取消禁言
         """
         try:
             await event.bot.set_group_ban(
@@ -370,4 +381,5 @@ class QQAdminPlugin(Star):
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
         await self.curfew.stop_all_tasks()
+        await self.db.close()
         logger.info("插件 astrbot_plugin_QQAdmin 已优雅关闭")

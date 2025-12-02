@@ -66,30 +66,11 @@
     "type": "string",
     "default": "30~300"
   },
-  "forbidden": {
-    "description": "违禁词禁言配置",
-    "hint": "若禁言命令未指定禁言时长，则使用随机时长，时长范围如下",
-    "type": "object",
-    "items": {
-      "whitelist": {
-        "description": "检测违禁词的群聊白名单",
-        "hint": "仅检测白名单的群聊，留空则关闭违禁词检测（注意老版本是留空则全部群聊启用，根据用户反馈体验极差，故作更改）",
-        "type": "list",
-        "default": []
-      },
-      "words": {
-        "description": "违禁词",
-        "hint": "包含关键词的消息将被撤回，并禁言发送者",
-        "type": "list",
-        "default": []
-      },
-      "ban_time": {
-        "description": "违禁词禁言时长",
-        "hint": "触发违禁词则禁言发送者，单位：秒，设置为0表示不禁言",
-        "type": "int",
-        "default": 60
-      }
-    }
+  "ban_words_time": {
+    "description": "违禁词禁言时长",
+    "hint": "触发违禁词则禁言发送者，单位：秒，设置为0表示不禁言",
+    "type": "int",
+    "default": 60
   },
   "spamming": {
     "description": "刷屏禁言配置",
@@ -356,6 +337,30 @@
         ],
         "default": "成员"
       },
+      "send_group_notice": {
+        "description": "发布群公告",
+        "type": "string",
+        "options": [
+          "超管",
+          "群主",
+          "管理员",
+          "高等级成员",
+          "成员"
+        ],
+        "default": "管理员"
+      },
+      "get_group_notice": {
+        "description": "查看群公告",
+        "type": "string",
+        "options": [
+          "超管",
+          "群主",
+          "管理员",
+          "高等级成员",
+          "成员"
+        ],
+        "default": "成员"
+      },
       "set_group_portrait": {
         "description": "设置群头像",
         "type": "string",
@@ -404,8 +409,8 @@
         ],
         "default": "管理员"
       },
-      "send_group_notice": {
-        "description": "发布群公告",
+      "handle_ban_words": {
+        "description": "违禁词",
         "type": "string",
         "options": [
           "超管",
@@ -416,8 +421,32 @@
         ],
         "default": "管理员"
       },
-      "get_group_notice": {
-        "description": "群公告",
+      "start_vote_mute": {
+        "description": "投票禁言",
+        "type": "string",
+        "options": [
+          "超管",
+          "群主",
+          "管理员",
+          "高等级成员",
+          "成员"
+        ],
+        "default": "成员"
+      },
+      "agree_vote_mute": {
+        "description": "赞同禁言",
+        "type": "string",
+        "options": [
+          "超管",
+          "群主",
+          "管理员",
+          "高等级成员",
+          "成员"
+        ],
+        "default": "成员"
+      },
+      "disagree_vote_mute": {
+        "description": "反对禁言",
         "type": "string",
         "options": [
           "超管",
@@ -548,42 +577,6 @@
         ],
         "default": "高等级成员"
       },
-      "start_vote_mute": {
-        "description": "投票禁言",
-        "type": "string",
-        "options": [
-          "超管",
-          "群主",
-          "管理员",
-          "高等级成员",
-          "成员"
-        ],
-        "default": "成员"
-      },
-      "agree_vote_mute": {
-        "description": "赞同禁言",
-        "type": "string",
-        "options": [
-          "超管",
-          "群主",
-          "管理员",
-          "高等级成员",
-          "成员"
-        ],
-        "default": "成员"
-      },
-      "disagree_vote_mute": {
-        "description": "反对禁言",
-        "type": "string",
-        "options": [
-          "超管",
-          "群主",
-          "管理员",
-          "高等级成员",
-          "成员"
-        ],
-        "default": "成员"
-      },
       "upload_group_file": {
         "description": "上传群文件",
         "type": "string",
@@ -621,7 +614,7 @@
         "default": "成员"
       },
       "ai_set_card": {
-        "description": "取昵称",
+        "description": "取名",
         "type": "string",
         "options": [
           "超管",
@@ -631,25 +624,6 @@
           "成员"
         ],
         "default": "成员"
-      }
-    }
-  },
-  "query": {
-    "description": "历史消息查询配置",
-    "hint": "用于控制获取群聊历史消息的行为参数",
-    "type": "object",
-    "items": {
-      "query_rounds": {
-        "description": "查询回合数",
-        "hint": "获取群聊历史消息的循环次数，每次循环会获取一批消息",
-        "type": "int",
-        "default": 10
-      },
-      "query_counts": {
-        "description": "每回合消息数量",
-        "hint": "每次循环从群聊历史中获取的消息数量",
-        "type": "int",
-        "default": 200
       }
     }
   }
