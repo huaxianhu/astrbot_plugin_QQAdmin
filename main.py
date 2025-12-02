@@ -261,6 +261,14 @@ class QQAdminPlugin(Star):
         "设置/查看进群黑名单关键词（空格隔开，无参数表示查看）"
         await self.join.handle_reject_words(event)
 
+    @filter.command("未命中驳回", desc="未命中白词自动驳回 开/关")
+    @perm_required(PermLevel.ADMIN)
+    async def handle_no_match_reject(
+        self, event: AiocqhttpMessageEvent, mode: str | bool | None = None
+    ):
+        "设置/查看是否拒绝无关键词的进群申请（无参数表示查看）"
+        await self.join.handle_no_match_reject(event, mode)
+
     @filter.command("进群等级")
     @perm_required(PermLevel.ADMIN)
     async def handle_level_threshold(

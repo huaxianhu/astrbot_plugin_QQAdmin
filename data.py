@@ -23,6 +23,7 @@ class QQAdminDB:
             "switch": jconf["default_switch"],
             "accept_words": [],
             "reject_words": [],
+            "no_match_reject": jconf["default_no_match_reject"],
             "min_level": jconf["default_min_level"],
             "max_time": jconf["default_max_time"],
             "block_ids": [],
@@ -123,6 +124,9 @@ class QQAdminDB:
     async def get_reject_words(self, group_id: str) -> list[str]:
         return list((await self.get(group_id)).get("reject_words", []))
 
+    async def get_no_match_reject(self, group_id: str, reject: bool):
+        return bool((await self.get(group_id)).get("no_match_reject", False))
+
     async def get_min_level(self, group_id: str) -> int:
         return int((await self.get(group_id)).get("min_level", 0))
 
@@ -144,6 +148,9 @@ class QQAdminDB:
 
     async def set_reject_words(self, group_id: str, kws: list[str]):
         await self.set(group_id, reject_words=kws)
+
+    async def set_no_match_reject(self, group_id: str, reject: bool):
+        await self.set(group_id, no_match_reject=bool(reject))
 
     async def set_min_level(self, group_id: str, level: int):
         await self.set(group_id, min_level=level)

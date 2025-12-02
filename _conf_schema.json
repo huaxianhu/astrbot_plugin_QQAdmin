@@ -22,8 +22,8 @@
         "type": "int",
         "default": 3
       },
-      "no_match_reject": {
-        "description": "未命中白词时自动驳回",
+      "default_no_match_reject": {
+        "description": "默认是否拒绝未命中白词的进群申请",
         "hint": "当用户申请加群时，没命中进群关键词，则自动驳回申请，而不是交给管理员处理",
         "type": "bool",
         "default": false
