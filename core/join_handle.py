@@ -174,6 +174,11 @@ class JoinHandle:
             return False, f"QQ等级过低({user_level}<{min_level})"
 
         if comment:
+            # 提取答案部分
+            keyword = "\n答案："
+            if keyword in comment:
+                comment = comment.split(keyword, 1)[1]
+
             lower_comment = comment.lower()
             # 3.命中进群黑词
             rkws = await self.db.get_reject_words(group_id)
