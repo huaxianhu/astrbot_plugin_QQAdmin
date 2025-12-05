@@ -317,7 +317,7 @@ class QQAdminPlugin(Star):
     @filter.command("进群黑名单")
     @perm_required(PermLevel.ADMIN, perm_key="join")
     async def handle_reject_ids(self, event: AiocqhttpMessageEvent):
-        "进群黑名单 <None/id/+id/-id>"
+        "进群黑名单 <id/+id/-id>, 用正负号进行增删"
         await self.join.handle_block_ids(event)
 
     @filter.command("批准", alias={"同意进群"}, desc="批准进群申请")
@@ -345,11 +345,11 @@ class QQAdminPlugin(Star):
 
     @filter.command("退群通知", perm_key="leave")
     @perm_required(PermLevel.MEMBER)
-    async def handle_leave_notice(
+    async def handle_leave_notify(
         self, event: AiocqhttpMessageEvent, mode: str | bool | None = None
     ):
         """退群通知 开/关"""
-        await self.join.handle_leave_notice(event, mode)
+        await self.join.handle_leave_notify(event, mode)
 
     @filter.command("退群拉黑", perm_key="leave")
     @perm_required(PermLevel.ADMIN)

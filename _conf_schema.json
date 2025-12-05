@@ -27,8 +27,8 @@
         "hint": "用户申请加群时, 若进群答案中包含这些关键词，则自动通过申请",
         "type": "list",
         "default": [
-          "示例白词1",
-          "示例白词2"
+          "白词1",
+          "白词2"
         ]
       },
       "join_reject_words": {
@@ -36,8 +36,8 @@
         "hint": "用户申请加群时, 若进群答案中包含这些关键词，则自动拒绝申请",
         "type": "list",
         "default": [
-          "示例黑词1",
-          "示例黑词2"
+          "黑词1",
+          "黑词2"
         ]
       },
       "join_no_match_reject": {
@@ -51,6 +51,12 @@
         "hint": "当用户因触发进群黑词而被拒绝进群时，自动拉黑该用户",
         "type": "bool",
         "default": false
+      },
+      "block_ids": {
+        "description": "进群黑名单",
+        "hint": "用户加入群聊时，若用户QQ在黑名单中，则自动拒绝",
+        "type": "list",
+        "default": []
       },
       "join_welcome": {
         "description": "进群欢迎词",
@@ -86,7 +92,10 @@
         "description": "群内自定义的违禁词",
         "hint": "",
         "type": "list",
-        "default": []
+        "default": [
+          "禁词1",
+          "禁词2"
+        ]
       },
       "word_ban_time": {
         "description": "触发禁词时的禁言时长",
@@ -133,7 +142,7 @@
       }
     }
   },
-  "llm_get_msg_count":{
+  "llm_get_msg_count": {
     "description": "取名指令获取消息的默认轮数",
     "hint": "取名指令会爬取群聊的聊天记录进行分析，每轮爬200条消息，默认爬轮数10轮， 轮数可调",
     "type": "int",
@@ -371,7 +380,7 @@
       },
       "word_ban": {
         "description": "禁词指令",
-        "hint":"包括：禁词禁言 <时长>、设置禁词、内置禁词 <开 | 关>",
+        "hint": "包括：禁词禁言 <时长>、设置禁词、内置禁词 <开 | 关>",
         "type": "string",
         "options": [
           "超管",
@@ -384,7 +393,7 @@
       },
       "handle_builtin_ban_words": {
         "description": "刷屏禁言指令",
-        "hint":"包括：刷屏禁言",
+        "hint": "包括：刷屏禁言",
         "type": "string",
         "options": [
           "超管",

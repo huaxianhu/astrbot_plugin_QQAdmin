@@ -170,14 +170,14 @@ class JoinHandle:
                 event.plain_result(f"本群进群欢迎语：\n{text or '（未设置）'}")
             )
 
-    async def handle_leave_notice(self, event: AiocqhttpMessageEvent, mode_str):
+    async def handle_leave_notify(self, event: AiocqhttpMessageEvent, mode_str):
         gid = event.get_group_id()
         mode = parse_bool(mode_str)
         if isinstance(mode, bool):
-            await self.db.set(gid, "leave_notice", mode)
+            await self.db.set(gid, "leave_notify", mode)
             await event.send(event.plain_result(f"本群退群通知已设置为：{mode}"))
         else:
-            status = await self.db.get(gid, "leave_notice")
+            status = await self.db.get(gid, "leave_notify")
             await event.send(event.plain_result(f"本群退群通知：{status}"))
 
     async def handle_leave_block(self, event: AiocqhttpMessageEvent, mode_str):
@@ -230,7 +230,7 @@ class JoinHandle:
                 return True, "命中进群白词"
 
         # 5.最大失败次数（考虑到只是防爆破，存内存里足矣，重启清零）
-        max_fail = await self.db.get(gid, "get_max_time", 3)
+        max_fail = await self.db.get(gid, "join_max_time", 3)
         if max_fail > 0:
             key = f"{gid}_{uid}"
             self._fail[key] = self._fail.get(key, 0) + 1
