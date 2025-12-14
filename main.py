@@ -416,13 +416,17 @@ class QQAdminPlugin(Star):
             yield r
 
     @filter.command("取名")
-    @perm_required(PermLevel.ADMIN, check_at=False)
+    @perm_required(
+        PermLevel.MEMBER, check_at=False
+    )  # 仅要求Bot为成员，实际权限不足时忽略接口报错
     async def ai_set_card(self, event: AiocqhttpMessageEvent):
         """取名@群友 <消息轮数>"""
         await self.llm.ai_set_card(event)
 
     @filter.command("取头衔")
-    @perm_required(PermLevel.OWNER, check_at=False)
+    @perm_required(
+        PermLevel.MEMBER, check_at=False
+    )  # 仅要求Bot为成员，实际权限不足时忽略接口报错
     async def ai_set_title(self, event: AiocqhttpMessageEvent):
         """取名@群友 <消息轮数>"""
         await self.llm.ai_set_title(event)
